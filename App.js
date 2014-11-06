@@ -20,6 +20,10 @@ Ext.define('CustomApp', {
                         {
                             xtype: 'container',
                             itemId: 'disableBox'
+                        },
+                        {
+                            xtype: 'container',
+                            itemId: 'notBox'
                         }
                     ]
             },
@@ -29,6 +33,9 @@ Ext.define('CustomApp', {
     ],
 
     storyGrid: null,
+
+    fieldName: "c_ActualReleaseNumber",
+    fieldTitle: "Actual Release Number",
 
     _updateGrid: function(app) {
 
@@ -53,7 +60,7 @@ Ext.define('CustomApp', {
         {
             var releasefilter = Ext.create('Rally.data.wsapi.Filter',{
                 property: 'Release.ObjectID',
-                operator: '=',
+                operator: app.down('#releaseNot').getValue() ? '!=' : '=',
                 value: Rally.util.Ref.getOidFromRef(app.down('#releaseSelector').getValue())
             });
             filters.push(releasefilter);
@@ -62,8 +69,8 @@ Ext.define('CustomApp', {
         if (Ext.getCmp('fieldFilterDisable').getValue() === false)
         {
             var fieldfilter = Ext.create('Rally.data.wsapi.Filter',{
-                property: 'c_ActualReleaseNumber',
-                operator: '=',
+                property: app.fieldName,
+                operator: app.down('#fieldNot').getValue() ? '!=' : '=',
                 value: app.down('#fieldSelector').getValue()
             });
             filters.push(fieldfilter);
@@ -73,7 +80,7 @@ Ext.define('CustomApp', {
         {
             var statefilter = Ext.create('Rally.data.wsapi.Filter',{
                 property: 'ScheduleState',
-                operator: '=',
+                operator: app.down('#stateNot').getValue() ? '!=' : '=',
                 value: app.down('#stateSelector').getValue()
             });
 
@@ -173,7 +180,7 @@ Ext.define('CustomApp', {
                                     id: 'releaseFilterDisable'
                                 },
                                 {
-                                    boxLabel: 'Actual Release',
+                                    boxLabel: app.fieldTitle,
                                     name: 'field',
                                     inputValue: '2',
                                     id: 'fieldFilterDisable'
@@ -183,6 +190,35 @@ Ext.define('CustomApp', {
                                     name: 'state',
                                     inputValue: '1',
                                     id: 'stateFilterDisable'
+                                }
+                            ]
+                        }
+                ]
+        });
+        var notSelector = Ext.create('Ext.container.Container', {
+                items: [
+                        {
+                            xtype: 'fieldcontainer',
+                            fieldLabel: 'Apply Inverse Filter',
+                            defaultType: 'checkboxfield',
+                            items: [
+                                {
+                                    boxLabel: 'Release',
+                                    name: 'all',
+                                    inputValue: '1',
+                                    id: 'releaseNot'
+                                },
+                                {
+                                    boxLabel: app.fieldTitle,
+                                    name: 'field',
+                                    inputValue: '2',
+                                    id: 'fieldNot'
+                                },
+                                {
+                                    boxLabel: 'State',
+                                    name: 'state',
+                                    inputValue: '1',
+                                    id: 'stateNot'
                                 }
                             ]
                         }
@@ -206,16 +242,34 @@ Ext.define('CustomApp', {
                                         }
                             });
 
+        Ext.getCmp('releaseNot').on ({
+                            change: function (thing, value) {
+                                        app._updateGrid(app);
+                                        }
+                            });
+
+        Ext.getCmp('fieldNot').on ({
+                            change: function (thing, value) {
+                                        app._updateGrid(app);
+                                        }
+                            });
+        Ext.getCmp('stateNot').on ({
+                            change: function (thing, value) {
+                                        app._updateGrid(app);
+                                        }
+                            });
+
 
         this.down('#selectorBox').add(releaseSelector);
         this.down('#disableBox').add(disableSelector);
+        this.down('#notBox').add(notSelector);
 
     },
 
     doFieldSelector: function(app, releaseValue) {
 
         var fieldSelector = Ext.create('Rally.ui.combobox.FieldValueComboBox', {
-                fieldLabel: 'Actual Release: ',
+                fieldLabel: app.fieldTitle + ": ",
                 allowNoEntry: true,
                 allowBlank: true,
                 autoScroll: true,
@@ -223,7 +277,7 @@ Ext.define('CustomApp', {
                 anyMatch: true,
                 id: 'fieldSelector',
                 model: 'UserStory',
-                field: 'c_ActualReleaseNumber',
+                field: app.fieldName,
                 listeners: {
                     ready: function(thing, fieldValue){
                                         app.doStateSelector(app, fieldValue, releaseValue);
