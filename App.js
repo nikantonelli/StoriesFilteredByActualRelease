@@ -13,20 +13,29 @@ Ext.define('CustomApp', {
             {   xtype: 'container',
                 itemId: 'header',
                 layout: 'column',
+                border: 5,
+                style: {
+                    borderColor: Rally.util.Colors.cyan,
+                    borderStyle: 'solid'
+                },
                 items: [ {
                             xtype: 'container',
+                            margin: 10,
                             itemId: 'selectorBox'
                         },
                         {
                             xtype: 'container',
+                            margin: 10,
                             itemId: 'disableBox'
                         },
                         {
                             xtype: 'container',
+                            margin: 10,
                             itemId: 'notBox'
                         },
                         {
                             xtype: 'container',
+                            margin: 10,
                             itemId: 'buttonBox'
                         }
                     ]
@@ -38,8 +47,8 @@ Ext.define('CustomApp', {
 
     storyGrid: null,
 
-    fieldName: "c_ActualReleaseNumber",
-    fieldTitle: "Actual Release Number",
+    fieldName: "Feature",
+    fieldTitle: "Feature",
 
     _updateGrid: function(app) {
 
