@@ -24,10 +24,6 @@ Ext.define('CustomApp', {
                         {
                             xtype: 'container',
                             itemId: 'notBox'
-                        },
-                        {
-                            xtype: 'container',
-                            itemId: 'buttonBox'
                         }
                     ]
             },
@@ -116,7 +112,7 @@ Ext.define('CustomApp', {
         {
             var releaseClm = {
                 text: 'Release',
-                dataIndex: 'Release.Name'
+                dataIndex: 'Release.Name',
             };
             colCfgs.push(releaseClm);
         }
@@ -125,7 +121,7 @@ Ext.define('CustomApp', {
         {
             var fieldClm = {
                 text: app.fieldTitle,
-                dataIndex: app.fieldName
+                dataIndex: app.fieldName,
             };
             colCfgs.push(fieldClm);
         }
@@ -134,7 +130,7 @@ Ext.define('CustomApp', {
         {
             var stateClm = {
                 text: 'Schedule State',
-                dataIndex: 'ScheduleState'
+                dataIndex: 'ScheduleState',
             };
             colCfgs.push(stateClm);
         }
@@ -155,18 +151,6 @@ Ext.define('CustomApp', {
                     filters:[]
                 },
                 columnCfgs: [
-                    {
-                        text: 'ID',
-                        dataIndex: 'FormattedID'
-                    },
-                    {
-                        text: 'Title',
-                        dataIndex: 'Name'
-                    },
-                    {
-                        text: 'State',
-                        dataIndex: 'ScheduleState'
-                    }
                 ]
             });
 
@@ -176,34 +160,34 @@ Ext.define('CustomApp', {
         store.filter(app._createFilter(app));
 
         // Reset the columnCfgs of the grid
-//debugger;
-//        var colCfgs = app._createCfg(app);
+debugger;
+        var colCfgs = app._createCfg(app);
 
 
 //        for  (var j = 0; j < colCfgs.length ; j++) {
-//                    app.storyGrid.setColumnCfgs(colCfgs);
+                    app.storyGrid.setColumnCfgs(colCfgs);
   //      }
 
 
         //Add listeners to change onto dropdowns. To keep the code simple,
         // I am not going to pass the value, but refetch it.
-//        Ext.getCmp('releaseSelector').on( {
-//                            change: function(thing, value){
-//                                app._updateGrid(app);
-//                            }
-//                    });
-//
-//        Ext.getCmp('fieldSelector').on( {
-//                            change: function(thing, value){
-//                                app._updateGrid(app);
-//                            }
-//                    });
-//
-//        Ext.getCmp('stateSelector').on( {
-//                            change: function(thing, value){
-//                                app._updateGrid(app);
-//                            }
-//                    });
+        Ext.getCmp('releaseSelector').on( {
+                            change: function(thing, value){
+                                app._updateGrid(app);
+                            }
+                    });
+
+        Ext.getCmp('fieldSelector').on( {
+                            change: function(thing, value){
+                                app._updateGrid(app);
+                            }
+                    });
+
+        Ext.getCmp('stateSelector').on( {
+                            change: function(thing, value){
+                                app._updateGrid(app);
+                            }
+                    });
 
         app.down('#body').add(app.storyGrid);
 
@@ -286,17 +270,44 @@ Ext.define('CustomApp', {
                 ]
         });
 
-        var goButton = Ext.create('Ext.Button', {
-                text: 'Run Query',
-                handler: function() { app._updateGrid(app); }
-        });
+        Ext.getCmp('releaseFilterDisable').on ({
+                            change: function (thing, value) {
+                                        app._updateGrid(app);
+                                        }
+                            });
 
+        Ext.getCmp('fieldFilterDisable').on ({
+                            change: function (thing, value) {
+                                        app._updateGrid(app);
+                                        }
+                            });
+        Ext.getCmp('stateFilterDisable').on ({
+                            change: function (thing, value) {
+                                        app._updateGrid(app);
+                                        }
+                            });
+
+        Ext.getCmp('releaseNot').on ({
+                            change: function (thing, value) {
+                                        app._updateGrid(app);
+                                        }
+                            });
+
+        Ext.getCmp('fieldNot').on ({
+                            change: function (thing, value) {
+                                        app._updateGrid(app);
+                                        }
+                            });
+        Ext.getCmp('stateNot').on ({
+                            change: function (thing, value) {
+                                        app._updateGrid(app);
+                                        }
+                            });
 
 
         this.down('#selectorBox').add(releaseSelector);
         this.down('#disableBox').add(disableSelector);
         this.down('#notBox').add(notSelector);
-        this.down('#buttonBox').add(goButton);
 
     },
 
