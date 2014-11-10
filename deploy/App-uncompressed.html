@@ -12,30 +12,45 @@
 //        Ext.util.Observable.capture( object, function(event) { console.log(event, arguments);});
 
 
-Ext.define('CustomApp', {
+Ext.define('Rally.apps.storyfieldfilter.App', {
     extend: 'Rally.app.App',
     componentCls: 'app',
-    requries: [
-        'Rally.ui.tree.TreeGrid'
-    ],
+    config: {
+        defaultSettings: [
+            {  name: 'filterByField', value: 'Feature'}
+        ]
+    },
+
+    //Identify this app so that we can find it from some unrelated code....
+    id: 'MainApp',
+
     items:[
             {   xtype: 'container',
                 itemId: 'header',
                 layout: 'column',
+                border: 5,
+                style: {
+                    borderColor: Rally.util.Colors.cyan,
+                    borderStyle: 'solid'
+                },
                 items: [ {
                             xtype: 'container',
+                            margin: 10,
                             itemId: 'selectorBox'
                         },
                         {
                             xtype: 'container',
+                            margin: 10,
                             itemId: 'disableBox'
                         },
                         {
                             xtype: 'container',
+                            margin: 10,
                             itemId: 'notBox'
                         },
                         {
                             xtype: 'container',
+                            margin: 10,
                             itemId: 'buttonBox'
                         }
                     ]
@@ -47,8 +62,16 @@ Ext.define('CustomApp', {
 
     storyGrid: null,
 
-    fieldName: "c_ActualReleaseNumber",
-    fieldTitle: "Actual Release Number",
+    fieldName: undefined,
+    fieldTitle: undefined,
+
+    // This function needs to be provided so that the app is instantiated with the extra 'app settings' entry
+    // on the app gearwheel.
+
+    getSettingsFields: function ()
+    {
+        return Rally.apps.storyfieldfilter.Settings.getFields();
+    },
 
     _updateGrid: function(app) {
 
@@ -221,6 +244,18 @@ Ext.define('CustomApp', {
     launch: function() {
 
         var app = this;
+Ext.util.Observable.capture( app, function(event) { console.log(event, arguments);});
+
+        //Check that the settings are configured. If not, set some useful defaults
+
+        var filterField = this.getSetting('filterByField');
+        if ( filterField === undefined) {
+            this.fieldName = "Feature";
+            this.fieldTitle = "Feature";
+        }else {
+            this.fieldName = filterField;
+            this.fieldTitle = this.getSetting('wsapiName');
+        }
 
         //Cascade the creation of comboboxes so that we keep the code simple
 
@@ -354,8 +389,61 @@ Ext.define('CustomApp', {
     }
 });
 
+                // Define a way of loading the field selector in the settings
 
-            Rally.launchApp('CustomApp', {
+Ext.define('Rally.apps.storyfieldfilter.Settings', {
+    singleton: true,
+    requires: [
+        'Rally.apps.storyfieldfilter.App',
+        'Rally.ui.combobox.FieldComboBox'
+    ],
+
+    getFields: function(config) {
+        var items = [
+            {
+                name: 'filterByField',
+                xtype: 'rallyfieldcombobox',
+                model: 'UserStory',
+                fieldLabel: 'Filter by',
+                listeners: {
+                    select: function(combo) {
+                        this.fireEvent('fieldselected', combo.getRecord());
+                    },
+                    ready: function(combo) {
+                        combo.store.filterBy(function(record) {
+                            var attr = record.get('fieldDefinition').attributeDefinition;
+                            return attr && !attr.ReadOnly && attr.Constrained && attr.AttributeType !== 'OBJECT' && attr.AttributeType !== 'COLLECTION';
+                        });
+                        if (combo.getRecord()) {
+                            this.fireEvent('fieldselected', combo.getRecord());
+                        }
+                    }
+                },
+                bubbleEvents: ['fieldselected'],
+
+                handlesEvents: {
+                    fieldselected: function(record) {
+                        Ext.getCmp('wsapiName').setValue(record.raw.name);
+                    }
+                }
+            },
+            {
+                name: 'wsapiName',
+                id: 'wsapiName',
+                fieldLabel: 'WSAPI Field Name',
+                xtype: 'rallytextfield',
+                readOnly: true,
+                border: 0,
+                hidden: true
+            }
+        ];
+        return items;
+    }
+
+});
+
+
+            Rally.launchApp('Rally.apps.storyfieldfilter.App', {
                 name:"StoriesFilteredByActualRelease",
 	            parentRepos:""
             });

@@ -1,10 +1,11 @@
 {
    "name": "StoriesFilteredByActualRelease",
-   "className": "CustomApp",
+   "className": "Rally.apps.storyfieldfilter.App",
    "server": "https://rally1.rallydev.com",
    "sdk": "2.0rc3",
    "javascript": [
-      "App.js"
+      "App.js",
+      "Settings.js"
    ],
    "css": [
       "app.css"

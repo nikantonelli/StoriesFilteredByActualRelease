@@ -3,12 +3,18 @@
 //        Ext.util.Observable.capture( object, function(event) { console.log(event, arguments);});
 
 
-Ext.define('CustomApp', {
+Ext.define('Rally.apps.storyfieldfilter.App', {
     extend: 'Rally.app.App',
     componentCls: 'app',
-    requries: [
-        'Rally.ui.tree.TreeGrid'
-    ],
+    config: {
+        defaultSettings: [
+            {  name: 'filterByField', value: 'Feature'}
+        ]
+    },
+
+    //Identify this app so that we can find it from some unrelated code....
+    id: 'MainApp',
+
     items:[
             {   xtype: 'container',
                 itemId: 'header',
@@ -47,8 +53,16 @@ Ext.define('CustomApp', {
 
     storyGrid: null,
 
-    fieldName: "Feature",
-    fieldTitle: "Feature",
+    fieldName: undefined,
+    fieldTitle: undefined,
+
+    // This function needs to be provided so that the app is instantiated with the extra 'app settings' entry
+    // on the app gearwheel.
+
+    getSettingsFields: function ()
+    {
+        return Rally.apps.storyfieldfilter.Settings.getFields();
+    },
 
     _updateGrid: function(app) {
 
@@ -221,6 +235,18 @@ Ext.define('CustomApp', {
     launch: function() {
 
         var app = this;
+Ext.util.Observable.capture( app, function(event) { console.log(event, arguments);});
+
+        //Check that the settings are configured. If not, set some useful defaults
+
+        var filterField = this.getSetting('filterByField');
+        if ( filterField === undefined) {
+            this.fieldName = "Feature";
+            this.fieldTitle = "Feature";
+        }else {
+            this.fieldName = filterField;
+            this.fieldTitle = this.getSetting('wsapiName');
+        }
 
         //Cascade the creation of comboboxes so that we keep the code simple
 
