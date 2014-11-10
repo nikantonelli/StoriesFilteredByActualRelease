@@ -45,8 +45,13 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
                         },
                         {
                             xtype: 'container',
-                            margin: 10,
-                            itemId: 'notBox'
+                            itemId: 'notBox',
+                            margin: 10
+//                            style: {
+//                                margins: '0 10 0 10',
+//                                borderColor: Rally.util.Colors.logo_red,
+//                                borderStyle: 'solid'
+//                            }
                         },
                         {
                             xtype: 'container',
@@ -73,17 +78,14 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
         return Rally.apps.storyfieldfilter.Settings.getFields();
     },
 
+    // Single entry point to reloading the grid with the current settings
     _updateGrid: function(app) {
 
         if ( app.storyGrid !== null) {
             app.storyGrid.destroy();
         }
 
-        app._createGrid(app,
-                        app.down('#fieldSelector').getValue(),
-                        app.down('#releaseSelector').getValue(),
-                        app.down('#stateSelector').getValue()
-        );
+        app._createGrid(app);
 
     },
 
@@ -133,109 +135,60 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
         var colCfgs =
             [
                     {
-                        text: 'ID',
-                        dataIndex: 'FormattedID'
+                        dataIndex: 'FormattedID',
+                        text: 'ID'
                     },
                     {
-                        text: 'Title',
                         dataIndex: 'Name',
-                        flex: 1
+                        text: 'Title',
+                        flex: 2
                     }
-     ];
-
+        ];
 
         if (Ext.getCmp('releaseFilterDisable').getValue() === true)
         {
             var releaseClm = {
-                text: 'Release',
-                dataIndex: 'Release.Name'
+                dataIndex: 'Release',
+                text: 'Release'
             };
             colCfgs.push(releaseClm);
-        }
-
-        if (Ext.getCmp('fieldFilterDisable').getValue() === true)
-        {
-            var fieldClm = {
-                text: app.fieldTitle,
-                dataIndex: app.fieldName
-            };
-            colCfgs.push(fieldClm);
         }
 
         if (Ext.getCmp('stateFilterDisable').getValue() === true)
         {
             var stateClm = {
-                text: 'Schedule State',
-                dataIndex: 'ScheduleState'
+                dataIndex: 'ScheduleState',
+                text: 'Schedule State'
             };
             colCfgs.push(stateClm);
         }
 
+        if (Ext.getCmp('fieldFilterDisable').getValue() === true)
+        {
+            var fieldClm = {
+                dataIndex: app.fieldName,
+                text: app.fieldTitle
+            };
+            colCfgs.push(fieldClm);
+        }
 
         return colCfgs;
     },
 
     _createGrid: function (app, fieldValue, releaseValue, stateValue){
 
-           app.storyGrid = Ext.create('Rally.ui.grid.Grid', {
+        app.storyGrid = Ext.create('Rally.ui.grid.Grid', {
 
-                //We will rely on the default 'fetch' settings
+
                 autoLoad: false,
                 models: [ 'User Story', 'Defect'],
+                //We want the fields that make up the filters, so that we can add in the columns as needed
                 storeConfig: {
-
-                    filters:[]
+                    fetch: ['Release', 'ScheduleState', app.fieldName],
+                    filters: app._createFilter(app)
                 },
-                columnCfgs: [
-                    {
-                        text: 'ID',
-                        dataIndex: 'FormattedID'
-                    },
-                    {
-                        text: 'Title',
-                        dataIndex: 'Name'
-                    },
-                    {
-                        text: 'State',
-                        dataIndex: 'ScheduleState'
-                    }
-                ]
+                columnCfgs: app._createCfg(app)
             });
-
-        // Now re-add the filter
-        var store = app.storyGrid.getStore();
-        store.clearFilter(true);
-        store.filter(app._createFilter(app));
-
-        // Reset the columnCfgs of the grid
-//debugger;
-//        var colCfgs = app._createCfg(app);
-
-
-//        for  (var j = 0; j < colCfgs.length ; j++) {
-//                    app.storyGrid.setColumnCfgs(colCfgs);
-  //      }
-
-
-        //Add listeners to change onto dropdowns. To keep the code simple,
-        // I am not going to pass the value, but refetch it.
-//        Ext.getCmp('releaseSelector').on( {
-//                            change: function(thing, value){
-//                                app._updateGrid(app);
-//                            }
-//                    });
-//
-//        Ext.getCmp('fieldSelector').on( {
-//                            change: function(thing, value){
-//                                app._updateGrid(app);
-//                            }
-//                    });
-//
-//        Ext.getCmp('stateSelector').on( {
-//                            change: function(thing, value){
-//                                app._updateGrid(app);
-//                            }
-//                    });
 
         app.down('#body').add(app.storyGrid);
 
@@ -244,7 +197,6 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
     launch: function() {
 
         var app = this;
-Ext.util.Observable.capture( app, function(event) { console.log(event, arguments);});
 
         //Check that the settings are configured. If not, set some useful defaults
 
@@ -265,7 +217,7 @@ Ext.util.Observable.capture( app, function(event) { console.log(event, arguments
             id: 'releaseSelector',
                 listeners: {
                     ready: function(thing, value){
-                                        app.doFieldSelector(app, value);
+                                        app.doStateSelector(app, value);
                                         }
 
                }
@@ -275,6 +227,8 @@ Ext.util.Observable.capture( app, function(event) { console.log(event, arguments
                 items: [
                         {
                             xtype: 'fieldcontainer',
+                            region: 'center',
+                            border: '0 3 0 3',
                             fieldLabel: 'Filter Disable',
                             defaultType: 'checkboxfield',
                             items: [
@@ -285,16 +239,16 @@ Ext.util.Observable.capture( app, function(event) { console.log(event, arguments
                                     id: 'releaseFilterDisable'
                                 },
                                 {
-                                    boxLabel: app.fieldTitle,
-                                    name: 'field',
-                                    inputValue: '2',
-                                    id: 'fieldFilterDisable'
-                                },
-                                {
                                     boxLabel: 'State',
                                     name: 'state',
                                     inputValue: '1',
                                     id: 'stateFilterDisable'
+                                },
+                                {
+                                    boxLabel: app.fieldTitle,
+                                    name: 'field',
+                                    inputValue: '2',
+                                    id: 'fieldFilterDisable'
                                 }
                             ]
                         }
@@ -314,16 +268,16 @@ Ext.util.Observable.capture( app, function(event) { console.log(event, arguments
                                     id: 'releaseNot'
                                 },
                                 {
-                                    boxLabel: app.fieldTitle,
-                                    name: 'field',
-                                    inputValue: '2',
-                                    id: 'fieldNot'
-                                },
-                                {
                                     boxLabel: 'State',
                                     name: 'state',
                                     inputValue: '1',
                                     id: 'stateNot'
+                                },
+                                {
+                                    boxLabel: app.fieldTitle,
+                                    name: 'field',
+                                    inputValue: '2',
+                                    id: 'fieldNot'
                                 }
                             ]
                         }
@@ -332,6 +286,7 @@ Ext.util.Observable.capture( app, function(event) { console.log(event, arguments
 
         var goButton = Ext.create('Ext.Button', {
                 text: 'Run Query',
+                color: Rally.util.Colors.logo_red,
                 handler: function() { app._updateGrid(app); }
         });
 
@@ -344,7 +299,7 @@ Ext.util.Observable.capture( app, function(event) { console.log(event, arguments
 
     },
 
-    doFieldSelector: function(app, releaseValue) {
+    doFieldSelector: function(app, releaseValue, stateValue) {
 
         var fieldSelector = Ext.create('Rally.ui.combobox.FieldValueComboBox', {
                 fieldLabel: app.fieldTitle + ": ",
@@ -358,7 +313,7 @@ Ext.util.Observable.capture( app, function(event) { console.log(event, arguments
                 field: app.fieldName,
                 listeners: {
                     ready: function(thing, fieldValue){
-                                        app.doStateSelector(app, fieldValue, releaseValue);
+                                        app._createGrid(app, fieldValue, releaseValue, stateValue);
                                         }
                }
             });
@@ -380,7 +335,7 @@ Ext.util.Observable.capture( app, function(event) { console.log(event, arguments
                 field: 'ScheduleState',
                 listeners: {
                     ready: function(thing, stateValue){
-                                        app._createGrid(app, fieldValue, releaseValue, stateValue);
+                                        app.doFieldSelector(app, releaseValue, stateValue);
                                         }
                }
             });
@@ -412,7 +367,7 @@ Ext.define('Rally.apps.storyfieldfilter.Settings', {
                     ready: function(combo) {
                         combo.store.filterBy(function(record) {
                             var attr = record.get('fieldDefinition').attributeDefinition;
-                            return attr && !attr.ReadOnly && attr.Constrained && attr.AttributeType !== 'OBJECT' && attr.AttributeType !== 'COLLECTION';
+                            return attr && attr.Filterable && attr.AttributeType !== 'OBJECT' && attr.AttributeType !== 'COLLECTION';
                         });
                         if (combo.getRecord()) {
                             this.fireEvent('fieldselected', combo.getRecord());

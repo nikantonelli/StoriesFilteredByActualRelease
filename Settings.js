@@ -21,7 +21,7 @@ Ext.define('Rally.apps.storyfieldfilter.Settings', {
                     ready: function(combo) {
                         combo.store.filterBy(function(record) {
                             var attr = record.get('fieldDefinition').attributeDefinition;
-                            return attr && !attr.ReadOnly && attr.Constrained && attr.AttributeType !== 'OBJECT' && attr.AttributeType !== 'COLLECTION';
+                            return attr && attr.Filterable && attr.AttributeType !== 'OBJECT' && attr.AttributeType !== 'COLLECTION';
                         });
                         if (combo.getRecord()) {
                             this.fireEvent('fieldselected', combo.getRecord());
