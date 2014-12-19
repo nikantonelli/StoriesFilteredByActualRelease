@@ -3,12 +3,14 @@
 //        Ext.util.Observable.capture( object, function(event) { console.log(event, arguments);});
 
 
-Ext.define('Rally.apps.storyfieldfilter.App', {
+Ext.define('Rally.apps.StoriesByCustomStoryField.App', {
     extend: 'Rally.app.App',
     componentCls: 'app',
     config: {
         defaultSettings: [
-            {  name: 'filterByField', value: 'Feature'}
+            { name: 'filterByField', value: 'State'},
+            { name: 'wsapiName',     value: 'State'},
+            { name: 'timeBox',       value: false}
         ]
     },
 
@@ -58,6 +60,10 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
 
     storyGrid: null,
 
+    // Maximum number of stories that can be fetched in a grid page.
+    PageSize: 200,
+
+
     fieldName: undefined,
     fieldTitle: undefined,
 
@@ -66,13 +72,13 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
 
     getSettingsFields: function ()
     {
-        return Rally.apps.storyfieldfilter.Settings.getFields();
+        return Rally.apps.StoriesByCustomStoryField.Settings.getFields(this);
     },
 
     // Single entry point to reloading the grid with the current settings
     _updateGrid: function(app) {
 
-        if ( app.storyGrid !== null) {
+        if ( app.storyGrid) {
             app.storyGrid.destroy();
         }
 
@@ -88,9 +94,9 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
         if (Ext.getCmp('releaseFilterDisable').getValue() === false)
         {
             var releasefilter = Ext.create('Rally.data.wsapi.Filter',{
-                property: 'Release.ObjectID',
+                property: app.timeBoxType + '.ObjectID',
                 operator: app.down('#releaseNot').getValue() ? '!=' : '=',
-                value: Rally.util.Ref.getOidFromRef(app.down('#releaseSelector').getValue())
+                value: Rally.util.Ref.getOidFromRef(app.down('#timeBoxSelector').getValue())
             });
             filters.push(releasefilter);
         }
@@ -126,26 +132,35 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
         var colCfgs =
             [
                     {
-                        dataIndex: 'FormattedID',
-                        text: 'ID'
+                        dataIndex: 'Name',
+                        text: 'Title'
                     },
                     {
-                        dataIndex: 'Name',
-                        text: 'Title',
-                        flex: 2
+                        dataIndex: 'Project',
+                        text: 'Team'
+                    },
+                    {
+                        dataIndex: 'SubmittedBy',
+                        text: 'Submitted By'
+                    },
+                    {
+                        dataIndex: 'Owner',
+                        text: 'Owner'
                     }
         ];
 
-        if (Ext.getCmp('releaseFilterDisable').getValue() === true)
+        if ((Ext.getCmp('releaseFilterDisable').getValue() === true) ||
+               (Ext.getCmp('releaseNot').getValue() === true) )
         {
             var releaseClm = {
-                dataIndex: 'Release',
-                text: 'Release'
+                dataIndex: app.timeBoxType,
+                text: app.timeBoxType
             };
             colCfgs.push(releaseClm);
         }
 
-        if (Ext.getCmp('stateFilterDisable').getValue() === true)
+        if ((Ext.getCmp('stateFilterDisable').getValue() === true)  ||
+               (Ext.getCmp('stateNot').getValue() === true) )
         {
             var stateClm = {
                 dataIndex: 'ScheduleState',
@@ -154,7 +169,8 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
             colCfgs.push(stateClm);
         }
 
-        if (Ext.getCmp('fieldFilterDisable').getValue() === true)
+        if ((Ext.getCmp('fieldFilterDisable').getValue() === true)  ||
+               (Ext.getCmp('fieldNot').getValue() === true) )
         {
             var fieldClm = {
                 dataIndex: app.fieldName,
@@ -168,22 +184,37 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
 
     _createGrid: function (app, fieldValue, releaseValue, stateValue){
 
-        app.storyGrid = Ext.create('Rally.ui.grid.Grid', {
+        var storiessFound = [];
 
+        var StoryStore = Ext.create('Rally.data.wsapi.TreeStoreBuilder').build( {
 
-                autoLoad: false,
-                models: [ 'User Story', 'Defect'],
+                autoLoad: true,
+                enableHierarchy: true,
+                emptyText: '<p align=center>No Stories Found.</p>',
+                models: [ 'UserStory'],
                 //We want the fields that make up the filters, so that we can add in the columns as needed
-                storeConfig: {
-                    fetch: ['Release', 'ScheduleState', app.fieldName],
+//                storeConfig: {
+                    pageSize: app.PageSize, //Set up gird page to this many
+                    limitParam: undefined,  //Seems to suggest that set to undefined it will get everything in one go....
+                    fetch: [app.timeBoxType, 'ScheduleState', app.fieldName, 'CreationDate'],
                     filters: app._createFilter(app)
-                },
-                columnCfgs: app._createCfg(app)
-            });
+//                    }
+                }).then({
+                    success: function(store) {
+                        app.storyGrid = Ext.create('Rally.ui.grid.TreeGrid', {
+                                    columnCfgs: app._createCfg(app),
+                                    store: store,
+                                    sortableColumns: true
+
+                                });
+                            }
+                });
 
         app.down('#body').add(app.storyGrid);
 
     },
+
+    timeBoxType: "Iteration",
 
     launch: function() {
 
@@ -193,26 +224,52 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
 
         var filterField = this.getSetting('filterByField');
         if ( filterField === undefined) {
-            this.fieldName = "Feature";
-            this.fieldTitle = "Feature";
+            app.fieldName = "State";
+            app.fieldTitle = "State";
         }else {
-            this.fieldName = filterField;
-            this.fieldTitle = this.getSetting('wsapiName');
+            app.fieldName = filterField;
+            app.fieldTitle = app.getSetting('wsapiName');
+        }
+        var timeBoxField = app.getSetting('timeBox');
+
+        if (timeBoxField) {
+            app.timeBoxType = "Release";
         }
 
         //Cascade the creation of comboboxes so that we keep the code simple
+        var START_DATE_FIELD = app.timeBoxType + "StartDate";
+        var END_DATE_FIELD = app.timeBoxType + "Date";
 
-        var releaseSelector = Ext.create('Rally.ui.combobox.ReleaseComboBox', {
-            fieldLabel: 'Rally Release: ',
+        if ( app.timeBoxType == "Iteration") {  //Completely inconsistent!
+            START_DATE_FIELD = "StartDate";
+            END_DATE_FIELD = "EndDate";
+        }
+
+        var comboType = "Rally.ui.combobox." + app.timeBoxType + "ComboBox";
+        var timeBoxSelector = Ext.create(comboType, {
+            fieldLabel: 'Rally ' + app.timeBoxType + ': ',
             allowNoEntry: true,
-            id: 'releaseSelector',
-                listeners: {
-                    ready: function(thing, value){
-                                        app.doStateSelector(app, value);
-                                        }
+            id: 'timeBoxSelector',
 
-               }
-            });
+            storeConfig: {
+                fetch: ["Name", START_DATE_FIELD, END_DATE_FIELD, "ObjectID", "State", "PlannedVelocity"],
+                sorters: [
+                    {property: START_DATE_FIELD, direction: "DESC"},
+                    {property: END_DATE_FIELD, direction: "DESC"}
+                ],
+                model: Ext.identityFn(app.timeBoxType)
+            },
+
+            listeners: {
+                ready: function(thing, value){
+                                    app.doStateSelector(app, value);
+                                    },
+                select: function(field, e) {
+                    app._updateGrid(app);
+                }
+
+           }
+        });
 
         var disableSelector = Ext.create('Ext.container.Container', {
                 items: [
@@ -224,21 +281,21 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
                             defaultType: 'checkboxfield',
                             items: [
                                 {
-                                    boxLabel: 'Release',
+                                    boxLabel: app.timeBoxType,
                                     name: 'all',
-                                    inputValue: '1',
+                                    value: false,
                                     id: 'releaseFilterDisable'
                                 },
                                 {
-                                    boxLabel: 'State',
+                                    boxLabel: 'ScheduleState',
                                     name: 'state',
-                                    inputValue: '1',
+                                    value: true,
                                     id: 'stateFilterDisable'
                                 },
                                 {
                                     boxLabel: app.fieldTitle,
                                     name: 'field',
-                                    inputValue: '2',
+                                    value: true,
                                     id: 'fieldFilterDisable'
                                 }
                             ]
@@ -253,21 +310,21 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
                             defaultType: 'checkboxfield',
                             items: [
                                 {
-                                    boxLabel: 'Release',
+                                    boxLabel: app.timeBoxType,
                                     name: 'all',
-                                    inputValue: '1',
+                                    value: false,
                                     id: 'releaseNot'
                                 },
                                 {
-                                    boxLabel: 'State',
+                                    boxLabel: 'ScheduleState',
                                     name: 'state',
-                                    inputValue: '1',
+                                    value: false,
                                     id: 'stateNot'
                                 },
                                 {
                                     boxLabel: app.fieldTitle,
                                     name: 'field',
-                                    inputValue: '2',
+                                    value: false,
                                     id: 'fieldNot'
                                 }
                             ]
@@ -283,7 +340,7 @@ Ext.define('Rally.apps.storyfieldfilter.App', {
 
 
 
-        this.down('#selectorBox').add(releaseSelector);
+        this.down('#selectorBox').add(timeBoxSelector);
         this.down('#disableBox').add(disableSelector);
         this.down('#notBox').add(notSelector);
         this.down('#buttonBox').add(goButton);

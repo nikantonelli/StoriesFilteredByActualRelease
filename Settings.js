@@ -1,22 +1,29 @@
 // Define a way of loading the field selector in the settings
 
-Ext.define('Rally.apps.storyfieldfilter.Settings', {
+Ext.define('Rally.apps.StoriesByCustomStoryField.Settings', {
     singleton: true,
     requires: [
-        'Rally.apps.storyfieldfilter.App',
+        'Rally.apps.StoriesByCustomStoryField.App',
         'Rally.ui.combobox.FieldComboBox'
     ],
 
-    getFields: function(config) {
+    getFields: function(context) {
+
         var items = [
+
+            {
+                name: 'timeBox',
+                xtype: 'rallycheckboxfield',
+                fieldLabel: 'Use Releases'
+            },
             {
                 name: 'filterByField',
                 xtype: 'rallyfieldcombobox',
                 model: 'UserStory',
                 fieldLabel: 'Filter by',
                 listeners: {
-                    select: function(combo) {
-                        this.fireEvent('fieldselected', combo.getRecord());
+                    select: function(record) {
+                        Ext.getCmp('wsapiName').setValue(record.rawValue);
                     },
                     ready: function(combo) {
                         combo.store.filterBy(function(record) {
@@ -26,13 +33,6 @@ Ext.define('Rally.apps.storyfieldfilter.Settings', {
                         if (combo.getRecord()) {
                             this.fireEvent('fieldselected', combo.getRecord());
                         }
-                    }
-                },
-                bubbleEvents: ['fieldselected'],
-
-                handlesEvents: {
-                    fieldselected: function(record) {
-                        Ext.getCmp('wsapiName').setValue(record.raw.name);
                     }
                 }
             },
@@ -45,6 +45,7 @@ Ext.define('Rally.apps.storyfieldfilter.Settings', {
                 border: 0,
                 hidden: true
             }
+
         ];
         return items;
     }
