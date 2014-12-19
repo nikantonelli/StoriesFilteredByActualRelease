@@ -247,6 +247,7 @@ Ext.define('Rally.apps.StoriesByCustomStoryField.App', {
 
         var comboType = "Rally.ui.combobox." + app.timeBoxType + "ComboBox";
         var timeBoxSelector = Ext.create(comboType, {
+            width: 400,
             fieldLabel: 'Rally ' + app.timeBoxType + ': ',
             allowNoEntry: true,
             id: 'timeBoxSelector',
