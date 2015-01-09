@@ -2,6 +2,7 @@ StoriesFilteredByActualRelease
 ==============================
 
 ## Overview
+Using a custom field (e.g. Actual Release), a dev team can track which stories went into version of the code that was released to a particular customer, or in a particular code drop (as opposed to a Rally definition of 'release' timebox)
 
 
 ## License
